@@ -60,12 +60,13 @@ export class Renderer {
     ctx.globalAlpha = 1
   }
 
-  fps(fps: number) {
+  /** Dev-only frame rate readout, bottom-left so it stays clear of the HUD. */
+  fps(fps: number, height: number) {
     const { ctx } = this
     ctx.font = '12px ui-monospace, monospace'
     ctx.fillStyle = COLORS.debugText
-    ctx.textBaseline = 'top'
-    ctx.fillText(`${Math.round(fps)} fps`, 8, 8)
+    ctx.textBaseline = 'bottom'
+    ctx.fillText(`${Math.round(fps)} fps`, 8, height - 8)
   }
 
   private circle(x: number, y: number, radius: number, color: string) {

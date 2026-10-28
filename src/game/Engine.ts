@@ -5,15 +5,40 @@ import { planSteps } from './loop.ts'
 import { Renderer } from './render/Renderer.ts'
 import type { InputState } from './types.ts'
 
+export interface HudState {
+  time: number
+  score: number
+  kills: number
+  hp: number
+  maxHp: number
+}
+
+export interface RunStats {
+  time: number
+  score: number
+  kills: number
+}
+
+export interface EngineCallbacks {
+  /** Called ~10 times a second while playing, and immediately when HP changes. */
+  onHud: (hud: HudState) => void
+  onGameOver: (stats: RunStats) => void
+}
+
+/** Seconds between HUD pushes to React; keeps React out of the per-frame path. */
+const HUD_INTERVAL = 0.1
+
 /**
  * Owns the canvas, input listeners and the requestAnimationFrame loop. Lives outside React so
- * the simulation never triggers re-renders; React only creates, starts and destroys it.
+ * the simulation never triggers re-renders; React drives it through newGame/pause/resume and
+ * hears back through callbacks.
  */
 export class Engine {
   private readonly canvas: HTMLCanvasElement
   private readonly ctx: CanvasRenderingContext2D
   private readonly renderer: Renderer
   private readonly input: InputManager
+  private readonly callbacks: EngineCallbacks
   private readonly inputState: InputState = {
     moveX: 0,
     moveY: 0,
@@ -27,16 +52,20 @@ export class Engine {
   private lastTime = 0
   private accumulator = 0
   private running = false
+  /** Whether the simulation advances. The loop keeps rendering either way, so menus sit over a live canvas. */
+  private playing = false
+  private hudTimer = 0
 
   private fpsFrames = 0
   private fpsElapsed = 0
   private fpsValue = 0
 
-  constructor(canvas: HTMLCanvasElement) {
-    const ctx = canvas.getContext('2d')
+  constructor(canvas: HTMLCanvasElement, callbacks: EngineCallbacks) {
+    const ctx = canvas.getContext('2d', { alpha: false })
     if (!ctx) throw new Error('Canvas 2D context is not available')
     this.canvas = canvas
     this.ctx = ctx
+    this.callbacks = callbacks
     this.renderer = new Renderer(ctx)
     this.input = new InputManager(canvas)
     this.game = new Game(window.innerWidth, window.innerHeight)
@@ -64,6 +93,22 @@ export class Engine {
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
   }
 
+  newGame() {
+    this.game.reset()
+    this.playing = true
+    this.accumulator = 0
+    this.pushHud()
+  }
+
+  pause() {
+    this.playing = false
+  }
+
+  resume() {
+    if (this.game.over) return
+    this.playing = true
+  }
+
   private scheduleFrame() {
     // Reset the clock so time spent stopped or hidden isn't simulated on resume.
     this.lastTime = performance.now()
@@ -82,11 +127,17 @@ export class Engine {
 
     const plan = planSteps(this.accumulator, frameTime)
     this.accumulator = plan.accumulator
-    for (let i = 0; i < plan.steps; i++) this.update(FIXED_DT)
+    if (this.playing) {
+      for (let i = 0; i < plan.steps; i++) this.update(FIXED_DT)
+      this.handleEvents()
+      this.hudTimer += frameTime
+      if (this.hudTimer >= HUD_INTERVAL) this.pushHud()
+    }
     this.game.events.length = 0
 
     this.trackFps(frameTime)
-    this.render(plan.alpha)
+    // While paused, draw exactly where the last step left things instead of interpolating.
+    this.render(this.playing ? plan.alpha : 1)
     this.rafId = requestAnimationFrame(this.frame)
   }
 
@@ -95,9 +146,28 @@ export class Engine {
     this.game.step(dt, this.inputState)
   }
 
+  private handleEvents() {
+    for (const event of this.game.events) {
+      if (event.type === 'hurt') {
+        this.pushHud()
+      } else if (event.type === 'gameOver') {
+        this.playing = false
+        this.pushHud()
+        const { time, score, kills } = this.game
+        this.callbacks.onGameOver({ time, score, kills })
+      }
+    }
+  }
+
+  private pushHud() {
+    this.hudTimer = 0
+    const { time, score, kills, player } = this.game
+    this.callbacks.onHud({ time, score, kills, hp: player.hp, maxHp: player.maxHp })
+  }
+
   private render(alpha: number) {
     this.renderer.draw(this.game, alpha)
-    if (import.meta.env.DEV) this.renderer.fps(this.fpsValue)
+    if (import.meta.env.DEV) this.renderer.fps(this.fpsValue, this.game.height)
   }
 
   private trackFps(frameTime: number) {
