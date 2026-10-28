@@ -15,6 +15,18 @@ export class Renderer {
     ctx.fillStyle = COLORS.background
     ctx.fillRect(0, 0, game.width, game.height)
 
+    // All bullets share a color, so draw them as one path with a single fill.
+    ctx.beginPath()
+    for (const b of game.projectiles.items) {
+      if (!b.active) continue
+      const bx = lerp(b.prevX, b.x, alpha)
+      const by = lerp(b.prevY, b.y, alpha)
+      ctx.moveTo(bx + b.radius, by)
+      ctx.arc(bx, by, b.radius, 0, Math.PI * 2)
+    }
+    ctx.fillStyle = COLORS.bullet
+    ctx.fill()
+
     const p = game.player
     const x = lerp(p.prevX, p.x, alpha)
     const y = lerp(p.prevY, p.y, alpha)
