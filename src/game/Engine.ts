@@ -1,10 +1,11 @@
 import { Sound } from './audio/Sound.ts'
-import { COLORS, ENEMY_TYPES, FIXED_DT, MAX_FRAME_TIME } from './config.ts'
+import { COLORS, ENEMY_TYPES, FIXED_DT, MAX_ENEMIES, MAX_FRAME_TIME } from './config.ts'
 import { Game } from './Game.ts'
 import { InputManager } from './input/InputManager.ts'
 import { planSteps } from './loop.ts'
 import { Effects } from './render/effects.ts'
 import { Renderer } from './render/Renderer.ts'
+import { spawnFromEdge } from './systems/spawner.ts'
 import type { InputState } from './types.ts'
 
 export interface HudState {
@@ -29,6 +30,22 @@ export interface EngineCallbacks {
 
 /** Seconds between HUD pushes to React; keeps React out of the per-frame path. */
 const HUD_INTERVAL = 0.1
+
+interface PerfStats {
+  frames: number
+  totalFrameMs: number
+  /** Time spent in update + render, excluding the browser's own work. */
+  totalWorkMs: number
+  maxWorkMs: number
+  enemies: number
+  projectiles: number
+}
+
+function readStressParam(): number {
+  const value = new URLSearchParams(window.location.search).get('stress')
+  if (value === null) return 0
+  return Math.min(MAX_ENEMIES, Number(value) || 300)
+}
 
 /**
  * Owns the canvas, input listeners and the requestAnimationFrame loop. Lives outside React so
@@ -59,6 +76,17 @@ export class Engine {
   /** Whether the simulation advances. The loop keeps rendering either way, so menus sit over a live canvas. */
   private playing = false
   private hudTimer = 0
+
+  /** Target enemy count when the page is opened with `?stress` or `?stress=N`; 0 = off. */
+  private readonly stress = readStressParam()
+  private readonly perf: PerfStats = {
+    frames: 0,
+    totalFrameMs: 0,
+    totalWorkMs: 0,
+    maxWorkMs: 0,
+    enemies: 0,
+    projectiles: 0,
+  }
 
   private fpsFrames = 0
   private fpsElapsed = 0
@@ -137,6 +165,7 @@ export class Engine {
     const frameTime = (now - this.lastTime) / 1000
     this.lastTime = now
 
+    const workStart = performance.now()
     const plan = planSteps(this.accumulator, frameTime)
     this.accumulator = plan.accumulator
     if (this.playing) {
@@ -152,12 +181,24 @@ export class Engine {
     this.trackFps(frameTime)
     // While paused, draw exactly where the last step left things instead of interpolating.
     this.render(this.playing ? plan.alpha : 1)
+    if (this.stress && this.playing) this.recordPerf(frameTime, performance.now() - workStart)
     this.rafId = requestAnimationFrame(this.frame)
   }
 
   private update(dt: number) {
     this.input.read(this.inputState)
+    if (this.stress) this.topUpStress()
     this.game.step(dt, this.inputState)
+  }
+
+  /** Stress mode: hold the enemy count at the target and keep the player alive, for profiling. */
+  private topUpStress() {
+    const { game, stress } = this
+    game.player.invulnerable = Infinity
+    // Late-game mix so all three enemy types are on screen.
+    while (game.enemies.size < stress) {
+      if (!spawnFromEdge(game.enemies, 120, game.width, game.height, Math.random)) break
+    }
   }
 
   private handleEvents() {
@@ -200,6 +241,18 @@ export class Engine {
   private render(alpha: number) {
     this.renderer.draw(this.game, this.effects, alpha)
     if (import.meta.env.DEV) this.renderer.fps(this.fpsValue, this.game.height)
+  }
+
+  /** Exposes rolling frame stats on `window.__arenaPerf` for profiling scripts. */
+  private recordPerf(frameTime: number, workMs: number) {
+    const perf = this.perf
+    perf.frames++
+    perf.totalFrameMs += frameTime * 1000
+    perf.totalWorkMs += workMs
+    perf.maxWorkMs = Math.max(perf.maxWorkMs, workMs)
+    perf.enemies = this.game.enemies.size
+    perf.projectiles = this.game.projectiles.size
+    ;(window as unknown as { __arenaPerf: PerfStats }).__arenaPerf = perf
   }
 
   private trackFps(frameTime: number) {

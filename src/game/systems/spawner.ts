@@ -102,12 +102,23 @@ export function updateSpawner(
   let spawned = 0
   while (spawner.timer <= 0) {
     spawner.timer += spawnInterval(elapsed)
-    const e = enemies.acquire()
-    if (!e) continue
-    const type = pickType(elapsed, rng())
-    edgePosition(Math.floor(rng() * 4), rng(), width, height, ENEMY_TYPES[type].radius, spawnPos)
-    initEnemy(e, type, spawnPos.x, spawnPos.y, speedScale(elapsed))
-    spawned++
+    if (spawnFromEdge(enemies, elapsed, width, height, rng)) spawned++
   }
   return spawned
+}
+
+/** Spawns one enemy suited to `elapsed` just off a random edge. Returns false when the pool is full. */
+export function spawnFromEdge(
+  enemies: Pool<Enemy>,
+  elapsed: number,
+  width: number,
+  height: number,
+  rng: Rng,
+): boolean {
+  const e = enemies.acquire()
+  if (!e) return false
+  const type = pickType(elapsed, rng())
+  edgePosition(Math.floor(rng() * 4), rng(), width, height, ENEMY_TYPES[type].radius, spawnPos)
+  initEnemy(e, type, spawnPos.x, spawnPos.y, speedScale(elapsed))
+  return true
 }
