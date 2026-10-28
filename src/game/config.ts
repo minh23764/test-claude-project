@@ -11,3 +11,7 @@ export const COLORS = {
 } as const
 
 export const PLAYER_RADIUS = 14
+/** Top speed in px/s. */
+export const PLAYER_SPEED = 260
+/** How quickly velocity eases toward the input direction (1/s); higher feels snappier. */
+export const PLAYER_RESPONSIVENESS = 18

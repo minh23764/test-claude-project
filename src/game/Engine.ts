@@ -1,19 +1,27 @@
-import { COLORS, FIXED_DT, PLAYER_RADIUS } from './config.ts'
+import { FIXED_DT } from './config.ts'
+import { Game } from './Game.ts'
+import { InputManager } from './input/InputManager.ts'
 import { planSteps } from './loop.ts'
 import { Renderer } from './render/Renderer.ts'
+import type { InputState } from './types.ts'
 
 /**
- * Owns the canvas and the requestAnimationFrame loop. Lives outside React so the
- * simulation never triggers re-renders; React only creates, starts and destroys it.
+ * Owns the canvas, input listeners and the requestAnimationFrame loop. Lives outside React so
+ * the simulation never triggers re-renders; React only creates, starts and destroys it.
  */
 export class Engine {
   private readonly canvas: HTMLCanvasElement
   private readonly ctx: CanvasRenderingContext2D
   private readonly renderer: Renderer
-
-  /** Arena size in CSS pixels. */
-  width = 0
-  height = 0
+  private readonly input: InputManager
+  private readonly inputState: InputState = {
+    moveX: 0,
+    moveY: 0,
+    pointerX: 0,
+    pointerY: 0,
+    hasPointer: false,
+  }
+  readonly game: Game
 
   private rafId: number | null = null
   private lastTime = 0
@@ -30,6 +38,8 @@ export class Engine {
     this.canvas = canvas
     this.ctx = ctx
     this.renderer = new Renderer(ctx)
+    this.input = new InputManager(canvas)
+    this.game = new Game(window.innerWidth, window.innerHeight)
 
     this.resize()
     window.addEventListener('resize', this.resize)
@@ -49,6 +59,7 @@ export class Engine {
 
   destroy() {
     this.stop()
+    this.input.destroy()
     window.removeEventListener('resize', this.resize)
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
   }
@@ -74,19 +85,18 @@ export class Engine {
     for (let i = 0; i < plan.steps; i++) this.update(FIXED_DT)
 
     this.trackFps(frameTime)
-    this.render()
+    this.render(plan.alpha)
     this.rafId = requestAnimationFrame(this.frame)
   }
 
-  private update(_dt: number) {
-    // Game systems plug in here from Phase 2 onward.
+  private update(dt: number) {
+    this.input.read(this.inputState)
+    this.game.step(dt, this.inputState)
   }
 
-  private render() {
-    const { renderer, width, height } = this
-    renderer.clear(width, height)
-    renderer.circle(width / 2, height / 2, PLAYER_RADIUS, COLORS.player)
-    if (import.meta.env.DEV) renderer.fps(this.fpsValue)
+  private render(alpha: number) {
+    this.renderer.draw(this.game, alpha)
+    if (import.meta.env.DEV) this.renderer.fps(this.fpsValue)
   }
 
   private trackFps(frameTime: number) {
@@ -101,16 +111,17 @@ export class Engine {
 
   private resize = () => {
     const dpr = window.devicePixelRatio || 1
-    this.width = window.innerWidth
-    this.height = window.innerHeight
-    this.canvas.width = Math.floor(this.width * dpr)
-    this.canvas.height = Math.floor(this.height * dpr)
-    this.canvas.style.width = `${this.width}px`
-    this.canvas.style.height = `${this.height}px`
+    const width = window.innerWidth
+    const height = window.innerHeight
+    this.canvas.width = Math.floor(width * dpr)
+    this.canvas.height = Math.floor(height * dpr)
+    this.canvas.style.width = `${width}px`
+    this.canvas.style.height = `${height}px`
     // Draw in CSS pixels; the transform maps them onto the device-pixel backing store.
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    this.game.resize(width, height)
     // Resizing clears the canvas, so repaint immediately rather than waiting for the next frame.
-    this.render()
+    this.render(1)
   }
 
   private onVisibilityChange = () => {
