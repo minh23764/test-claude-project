@@ -44,6 +44,9 @@ export class Renderer {
     const p = game.player
     const x = lerp(p.prevX, p.x, alpha)
     const y = lerp(p.prevY, p.y, alpha)
+    // Blink while immune after a hit.
+    const blink = p.invulnerable > 0 && Math.floor(p.invulnerable * 12) % 2 === 0
+    ctx.globalAlpha = blink ? 0.3 : 1
 
     ctx.beginPath()
     ctx.moveTo(x + p.aimX * p.radius * 0.5, y + p.aimY * p.radius * 0.5)
@@ -54,6 +57,7 @@ export class Renderer {
     ctx.stroke()
 
     this.circle(x, y, p.radius, COLORS.player)
+    ctx.globalAlpha = 1
   }
 
   fps(fps: number) {

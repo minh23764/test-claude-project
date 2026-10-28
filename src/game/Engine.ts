@@ -83,6 +83,7 @@ export class Engine {
     const plan = planSteps(this.accumulator, frameTime)
     this.accumulator = plan.accumulator
     for (let i = 0; i < plan.steps; i++) this.update(FIXED_DT)
+    this.game.events.length = 0
 
     this.trackFps(frameTime)
     this.render(plan.alpha)

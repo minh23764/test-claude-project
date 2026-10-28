@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { SPAWN_GRACE, SPAWN_INTERVAL_MIN, SPAWN_INTERVAL_START } from '../config.ts'
 import { createEnemy } from '../entities/Enemy.ts'
 import { Pool } from '../entities/Pool.ts'
+import { mulberry32 } from '../math/random.ts'
 import {
   createSpawner,
   edgePosition,
@@ -13,16 +14,7 @@ import {
 
 const W = 800
 const H = 600
-
-/** Deterministic pseudo-random sequence (mulberry32). */
-function seeded(seed: number) {
-  return () => {
-    seed = (seed + 0x6d2b79f5) | 0
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
+const seeded = mulberry32
 
 describe('edgePosition', () => {
   it('places circles fully outside each edge', () => {

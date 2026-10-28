@@ -16,6 +16,9 @@ export const PLAYER_RADIUS = 14
 export const PLAYER_SPEED = 260
 /** How quickly velocity eases toward the input direction (1/s); higher feels snappier. */
 export const PLAYER_RESPONSIVENESS = 18
+export const PLAYER_MAX_HP = 5
+/** Seconds of immunity after taking a hit. */
+export const PLAYER_INVULNERABILITY = 1
 
 /** Shots per second. */
 export const FIRE_RATE = 8
@@ -36,6 +39,12 @@ export type EnemyTypeId = keyof typeof ENEMY_TYPES
 export const ENEMY_TYPE_IDS = Object.keys(ENEMY_TYPES) as EnemyTypeId[]
 export const MAX_ENEMY_RADIUS = Math.max(...ENEMY_TYPE_IDS.map((id) => ENEMY_TYPES[id].radius))
 export const MAX_ENEMIES = 400
+/** Fraction of overlap resolved per step when enemies bump into each other (0..1). */
+export const SEPARATION_STRENGTH = 0.5
+/** Broad-phase cell size; roughly the largest enemy diameter. */
+export const GRID_CELL_SIZE = 48
+/** How far outside the arena the collision grid extends, covering just-spawned enemies. */
+export const GRID_MARGIN = 64
 
 /** Seconds of calm before the first enemy appears. */
 export const SPAWN_GRACE = 1

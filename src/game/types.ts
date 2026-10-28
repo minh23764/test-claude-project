@@ -1,3 +1,5 @@
+import type { EnemyTypeId } from './config.ts'
+
 /** Anything that moves and is drawn as a circle. `prevX/prevY` hold the last step's position for render interpolation. */
 export interface Body {
   x: number
@@ -8,6 +10,13 @@ export interface Body {
   vy: number
   radius: number
 }
+
+/** Things that happened during a step, for effects and UI. Engine drains `Game.events` each frame. */
+export type GameEvent =
+  | { type: 'hit'; x: number; y: number; enemy: EnemyTypeId }
+  | { type: 'kill'; x: number; y: number; enemy: EnemyTypeId }
+  | { type: 'hurt'; x: number; y: number }
+  | { type: 'gameOver' }
 
 /** Snapshot of player input for one simulation step, in arena (CSS pixel) coordinates. */
 export interface InputState {
