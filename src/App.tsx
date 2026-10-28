@@ -1,7 +1,9 @@
+import { GameCanvas } from './components/GameCanvas.tsx'
+
 function App() {
   return (
     <main className="app">
-      <h1>Arena Survival</h1>
+      <GameCanvas />
     </main>
   )
 }
