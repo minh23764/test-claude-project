@@ -26,3 +26,21 @@ export function saveBest(best: BestRecord) {
     // Not persisting is acceptable.
   }
 }
+
+const MUTED_KEY = 'arena-survival:muted'
+
+export function loadMuted(): boolean {
+  try {
+    return localStorage.getItem(MUTED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function saveMuted(muted: boolean) {
+  try {
+    localStorage.setItem(MUTED_KEY, muted ? '1' : '0')
+  } catch {
+    // Not persisting is acceptable.
+  }
+}

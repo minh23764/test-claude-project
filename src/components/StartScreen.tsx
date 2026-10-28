@@ -1,12 +1,15 @@
 import { formatTime } from '../format.ts'
 import type { BestRecord } from '../storage.ts'
+import { SoundToggle } from './SoundToggle.tsx'
 
 interface Props {
   best: BestRecord
+  muted: boolean
+  onToggleMuted: () => void
   onStart: () => void
 }
 
-export function StartScreen({ best, onStart }: Props) {
+export function StartScreen({ best, muted, onToggleMuted, onStart }: Props) {
   return (
     <div className="overlay">
       <div className="panel">
@@ -32,6 +35,7 @@ export function StartScreen({ best, onStart }: Props) {
         <button className="button" onClick={onStart} autoFocus>
           Play
         </button>
+        <SoundToggle muted={muted} onToggle={onToggleMuted} />
         {best.score > 0 && (
           <p className="muted">
             Best: {best.score} pts · {formatTime(best.time)}

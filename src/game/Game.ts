@@ -1,4 +1,5 @@
 import {
+  ENEMY_HIT_FLASH,
   ENEMY_TYPES,
   GRID_CELL_SIZE,
   GRID_MARGIN,
@@ -111,6 +112,7 @@ export class Game {
   private onBulletHit = (e: Enemy, b: Projectile) => {
     e.hp -= b.damage
     if (e.hp > 0) {
+      e.flash = ENEMY_HIT_FLASH
       this.emit({ type: 'hit', x: e.x, y: e.y, enemy: e.type })
       return
     }

@@ -1,7 +1,9 @@
-import { FIXED_DT } from './config.ts'
+import { Sound } from './audio/Sound.ts'
+import { COLORS, ENEMY_TYPES, FIXED_DT, MAX_FRAME_TIME } from './config.ts'
 import { Game } from './Game.ts'
 import { InputManager } from './input/InputManager.ts'
 import { planSteps } from './loop.ts'
+import { Effects } from './render/effects.ts'
 import { Renderer } from './render/Renderer.ts'
 import type { InputState } from './types.ts'
 
@@ -47,6 +49,8 @@ export class Engine {
     hasPointer: false,
   }
   readonly game: Game
+  private readonly effects = new Effects()
+  private readonly sound = new Sound()
 
   private rafId: number | null = null
   private lastTime = 0
@@ -89,12 +93,20 @@ export class Engine {
   destroy() {
     this.stop()
     this.input.destroy()
+    this.sound.destroy()
     window.removeEventListener('resize', this.resize)
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
   }
 
+  setMuted(muted: boolean) {
+    this.sound.muted = muted
+  }
+
   newGame() {
+    // Always reached from a click or key press, which is what browsers require before audio can start.
+    this.sound.unlock()
     this.game.reset()
+    this.effects.clear()
     this.playing = true
     this.accumulator = 0
     this.pushHud()
@@ -134,6 +146,8 @@ export class Engine {
       if (this.hudTimer >= HUD_INTERVAL) this.pushHud()
     }
     this.game.events.length = 0
+    // Effects freeze with the game when paused, but keep playing out behind the game-over screen.
+    if (this.playing || this.game.over) this.effects.update(Math.min(frameTime, MAX_FRAME_TIME))
 
     this.trackFps(frameTime)
     // While paused, draw exactly where the last step left things instead of interpolating.
@@ -147,14 +161,32 @@ export class Engine {
   }
 
   private handleEvents() {
+    const { effects, sound } = this
     for (const event of this.game.events) {
-      if (event.type === 'hurt') {
-        this.pushHud()
-      } else if (event.type === 'gameOver') {
-        this.playing = false
-        this.pushHud()
-        const { time, score, kills } = this.game
-        this.callbacks.onGameOver({ time, score, kills })
+      switch (event.type) {
+        case 'hit':
+          sound.play('hit')
+          break
+        case 'kill':
+          effects.burst(event.x, event.y, ENEMY_TYPES[event.enemy].color, 10, 260)
+          sound.play('kill')
+          break
+        case 'hurt':
+          effects.burst(event.x, event.y, COLORS.player, 18, 320)
+          effects.addShake(0.7)
+          sound.play('hurt')
+          this.pushHud()
+          break
+        case 'gameOver': {
+          const { player, time, score, kills } = this.game
+          effects.burst(player.x, player.y, COLORS.player, 48, 440)
+          effects.addShake(1)
+          sound.play('gameOver')
+          this.playing = false
+          this.pushHud()
+          this.callbacks.onGameOver({ time, score, kills })
+          break
+        }
       }
     }
   }
@@ -166,7 +198,7 @@ export class Engine {
   }
 
   private render(alpha: number) {
-    this.renderer.draw(this.game, alpha)
+    this.renderer.draw(this.game, this.effects, alpha)
     if (import.meta.env.DEV) this.renderer.fps(this.fpsValue, this.game.height)
   }
 

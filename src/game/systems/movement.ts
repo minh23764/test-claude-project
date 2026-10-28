@@ -37,6 +37,7 @@ export function moveEnemies(enemies: Pool<Enemy>, player: Player, dt: number) {
     if (!e.active) continue
     e.prevX = e.x
     e.prevY = e.y
+    e.flash = Math.max(0, e.flash - dt)
     normalize(player.x - e.x, player.y - e.y, dir)
     e.vx = dir.x * e.speed
     e.vy = dir.y * e.speed

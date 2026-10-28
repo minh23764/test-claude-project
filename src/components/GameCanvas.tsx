@@ -6,11 +6,12 @@ interface Props {
   active: boolean
   /** Incrementing this starts a fresh run. 0 means no run has started yet. */
   runId: number
+  muted: boolean
   onHud: (hud: HudState) => void
   onGameOver: (stats: RunStats) => void
 }
 
-export function GameCanvas({ active, runId, onHud, onGameOver }: Props) {
+export function GameCanvas({ active, runId, muted, onHud, onGameOver }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const engineRef = useRef<Engine | null>(null)
   // The engine is created once; refs let it always call the latest callbacks.
@@ -46,6 +47,10 @@ export function GameCanvas({ active, runId, onHud, onGameOver }: Props) {
     if (active) engineRef.current?.resume()
     else engineRef.current?.pause()
   }, [active])
+
+  useEffect(() => {
+    engineRef.current?.setMuted(muted)
+  }, [muted])
 
   return <canvas ref={canvasRef} className="game-canvas" />
 }

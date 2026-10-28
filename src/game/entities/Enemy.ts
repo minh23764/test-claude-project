@@ -6,6 +6,8 @@ export interface Enemy extends Body, Poolable {
   type: EnemyTypeId
   hp: number
   speed: number
+  /** Seconds left on the white flash shown after a non-lethal hit. */
+  flash: number
 }
 
 export function createEnemy(): Enemy {
@@ -21,6 +23,7 @@ export function createEnemy(): Enemy {
     radius: 0,
     hp: 0,
     speed: 0,
+    flash: 0,
   }
 }
 
@@ -35,4 +38,5 @@ export function initEnemy(e: Enemy, type: EnemyTypeId, x: number, y: number, spe
   e.radius = spec.radius
   e.hp = spec.hp
   e.speed = spec.speed * speedScale
+  e.flash = 0
 }

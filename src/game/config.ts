@@ -8,6 +8,8 @@ export const COLORS = {
   background: '#0b0d12',
   player: '#4fd1ff',
   bullet: '#e6f7ff',
+  flash: '#ffffff',
+  grid: 'rgba(79, 209, 255, 0.05)',
   debugText: '#6b7280',
 } as const
 
@@ -39,6 +41,8 @@ export type EnemyTypeId = keyof typeof ENEMY_TYPES
 export const ENEMY_TYPE_IDS = Object.keys(ENEMY_TYPES) as EnemyTypeId[]
 export const MAX_ENEMY_RADIUS = Math.max(...ENEMY_TYPE_IDS.map((id) => ENEMY_TYPES[id].radius))
 export const MAX_ENEMIES = 400
+/** Seconds an enemy flashes white after a non-lethal hit. */
+export const ENEMY_HIT_FLASH = 0.08
 /** Fraction of overlap resolved per step when enemies bump into each other (0..1). */
 export const SEPARATION_STRENGTH = 0.5
 /** Broad-phase cell size; roughly the largest enemy diameter. */
