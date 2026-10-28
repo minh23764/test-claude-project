@@ -1,5 +1,7 @@
 import { PLAYER_RESPONSIVENESS, PLAYER_SPEED } from '../config.ts'
+import type { Enemy } from '../entities/Enemy.ts'
 import type { Player } from '../entities/Player.ts'
+import type { Pool } from '../entities/Pool.ts'
 import { clamp, lerp, normalize, type Vec2 } from '../math/vec2.ts'
 
 const dir: Vec2 = { x: 0, y: 0 }
@@ -27,6 +29,20 @@ export function movePlayer(
   if (y !== player.y + player.vy * dt) player.vy = 0
   player.x = x
   player.y = y
+}
+
+/** Moves every enemy straight toward the player's current position. */
+export function moveEnemies(enemies: Pool<Enemy>, player: Player, dt: number) {
+  for (const e of enemies.items) {
+    if (!e.active) continue
+    e.prevX = e.x
+    e.prevY = e.y
+    normalize(player.x - e.x, player.y - e.y, dir)
+    e.vx = dir.x * e.speed
+    e.vy = dir.y * e.speed
+    e.x += e.vx * dt
+    e.y += e.vy * dt
+  }
 }
 
 /** Points the weapon at the target; keeps the previous direction when the target is on the player's center. */

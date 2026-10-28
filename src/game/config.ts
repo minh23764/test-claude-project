@@ -25,3 +25,25 @@ export const BULLET_RADIUS = 4
 export const BULLET_LIFETIME = 1.6
 export const BULLET_DAMAGE = 1
 export const MAX_PROJECTILES = 256
+
+/** Enemy archetypes. Speed is px/s before the difficulty ramp; damage is HP removed on contact. */
+export const ENEMY_TYPES = {
+  grunt: { radius: 12, speed: 105, hp: 1, damage: 1, score: 10, color: '#ff5c7a' },
+  runner: { radius: 8, speed: 185, hp: 1, damage: 1, score: 15, color: '#ffd166' },
+  tank: { radius: 22, speed: 60, hp: 6, damage: 2, score: 50, color: '#b388ff' },
+} as const
+export type EnemyTypeId = keyof typeof ENEMY_TYPES
+export const ENEMY_TYPE_IDS = Object.keys(ENEMY_TYPES) as EnemyTypeId[]
+export const MAX_ENEMY_RADIUS = Math.max(...ENEMY_TYPE_IDS.map((id) => ENEMY_TYPES[id].radius))
+export const MAX_ENEMIES = 400
+
+/** Seconds of calm before the first enemy appears. */
+export const SPAWN_GRACE = 1
+export const SPAWN_INTERVAL_START = 0.9
+export const SPAWN_INTERVAL_MIN = 0.1
+/** Seconds of survival for the spawn interval to halve. */
+export const SPAWN_INTERVAL_HALF_LIFE = 40
+/** Enemies move up to this much faster (as a fraction) late in a run. */
+export const ENEMY_SPEED_RAMP_MAX = 0.6
+/** Seconds of survival to reach the full speed ramp. */
+export const ENEMY_SPEED_RAMP_TIME = 240

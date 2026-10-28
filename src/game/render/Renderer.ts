@@ -1,4 +1,4 @@
-import { COLORS } from '../config.ts'
+import { COLORS, ENEMY_TYPE_IDS, ENEMY_TYPES } from '../config.ts'
 import type { Game } from '../Game.ts'
 import { lerp } from '../math/vec2.ts'
 
@@ -26,6 +26,20 @@ export class Renderer {
     }
     ctx.fillStyle = COLORS.bullet
     ctx.fill()
+
+    // One path per enemy type keeps fill calls constant no matter how many enemies are alive.
+    for (const type of ENEMY_TYPE_IDS) {
+      ctx.beginPath()
+      for (const e of game.enemies.items) {
+        if (!e.active || e.type !== type) continue
+        const ex = lerp(e.prevX, e.x, alpha)
+        const ey = lerp(e.prevY, e.y, alpha)
+        ctx.moveTo(ex + e.radius, ey)
+        ctx.arc(ex, ey, e.radius, 0, Math.PI * 2)
+      }
+      ctx.fillStyle = ENEMY_TYPES[type].color
+      ctx.fill()
+    }
 
     const p = game.player
     const x = lerp(p.prevX, p.x, alpha)

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { PLAYER_SPEED } from '../config.ts'
+import { createEnemy, initEnemy } from '../entities/Enemy.ts'
 import { createPlayer } from '../entities/Player.ts'
+import { Pool } from '../entities/Pool.ts'
 import { length } from '../math/vec2.ts'
-import { aimPlayer, movePlayer } from './movement.ts'
+import { aimPlayer, moveEnemies, movePlayer } from './movement.ts'
 
 const dt = 1 / 60
 const W = 1000
@@ -38,6 +40,25 @@ describe('movePlayer', () => {
     expect(p.y).toBe(p.radius)
     expect(p.vx).toBe(0)
     expect(p.vy).toBe(0)
+  })
+})
+
+describe('moveEnemies', () => {
+  it('moves enemies straight toward the player at their speed', () => {
+    const pool = new Pool(createEnemy, 1)
+    const e = pool.acquire()!
+    initEnemy(e, 'grunt', 0, 0, 1)
+    const player = createPlayer(300, 400)
+    moveEnemies(pool, player, 1)
+    expect(e.x).toBeCloseTo((300 / 500) * e.speed)
+    expect(e.y).toBeCloseTo((400 / 500) * e.speed)
+    expect(e.prevX).toBe(0)
+  })
+
+  it('skips inactive enemies', () => {
+    const pool = new Pool(createEnemy, 1)
+    moveEnemies(pool, createPlayer(100, 100), 1)
+    expect(pool.items[0].x).toBe(0)
   })
 })
 
